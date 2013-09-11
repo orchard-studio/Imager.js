@@ -1,3 +1,44 @@
+# Imager.js - Symphony CMS JIT Support
+
+ * This Fork Source: http://github.com/firegoby/Imager.js
+ * This Fork Author: Chris Batchelor, [Firegoby Design](http://firegoby.com)
+
+This fork of [BBC News' Imager.js](http://github.com/bbc-news/Imager.js) adds support for Symphony CMS' JIT Image Manipulation extension/service. It also adds optional Retina/Hi-DPI image support and an XSLT template for easily outputting the correct Imager.js HTML.
+
+## Changes in this fork
+
+1. Customised default regexp to match URLs of the JIT form: `/image/1/640/0/images/subfolder/example.jpg`
+2. Customised `changeImageSrcToUseNewImageDimensions` function to return URLs of the JIT form: `/image/1/newwidth/0/images/subfolder/example.jpg`
+3. Added `retina` configuration option (defaults to `true`) that when enabled serves up double width images when the client's current browser window is Retina/Hi-DPI (DPI > 1.5)
+4. Customised default `availableWidths` to smaller array of `[160, 320, 640, 960, 1440]` as most Symphony CMS user's servers probably shouldn't be generating as many assets on the fly as the BBC's servers can handle ;)
+5. Customised default `selector` of `delayed-image-load` to `imager`
+6. Added a XSLT template `imager` to ease placement of image assets (see below)
+
+## Retina Support
+
+This fork takes a slightly different approach to Retina/Hi-DPI images than some other techniques, instead of checking to see whether a `@2x` version of an image exists and then replacing it if it does, this instead simply **blindly** generates a double width image from the original source image and serves that. Therefore this approach is only suitable for use when the master/original images are all in high enough resolution to supply your design's needs on Retina/Hi-DPI devices. For example, you're creating a photography portfolio, you would upload a single high-resolution 3000px+ master JPG into Symphony and then let JIT generate all the other versions on the fly as needed. So an example user on 15" Retina MacbookPro would get served a 2880px wide image to display on screen at 1440px.
+
+In other words, upscaling a low-resolution image and serving it double sized is not going to magically make it 'hi-dpi', it's just going to *increase* your user's bandwidth load. This feature should thus only be used when you have access to Hi-DPI image content; if you don't, simply pass the `retina: false` option when calling Imager.js (e.g. `var imager = new Imager({retina: false});` and it will work exactly as the original Imager.js does.
+
+## Imager XSLT Template - imager.xsl
+
+The `imager` template takes two required params `image` and `width`. `image` is a standard Symphony file upload XML node and `width` is Imager.js' default placeholder width (see Imager.js docs). Also takes an optional third param `class` that allows overriding default `imager` CSS class.
+
+### Example XSLT
+
+    <xsl:call-template name="imager">
+        <xsl:with-param name="image" select="file"/>
+        <xsl:with-param name="width" select="640"/>
+    </xsl:call-template>
+
+### Example Output HTML
+
+    <div class="imager" data-src="/image/1/640/0/images/example/file.jpg" data-width="640"></div>
+
+Main/Original BBC Imager.js README below...
+
+***
+
 # Imager.js
 
  * Website: http://responsivenews.co.uk/
