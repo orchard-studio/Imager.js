@@ -153,7 +153,7 @@
             if (self.retina && self.isRetina()) {
                 selectedWidth *= 2;
             }
-            return newsrc = '/image/1/' + selectedWidth + '/0' + path;
+            return '/image/1/' + selectedWidth + '/0' + path;
         });
     };
 
