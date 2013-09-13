@@ -83,7 +83,7 @@
             window.addEventListener('resize', this.debouncer(function(){
                 self.isRetina = self.determineIfRetina();
                 self.checkImagesNeedReplacing();
-            }, self.interval, true), false);
+            }, self.interval, false), false);
         } else {
             window.addEventListener('resize', function(){
                 self.isRetina = self.determineIfRetina();
