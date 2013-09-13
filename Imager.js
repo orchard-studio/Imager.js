@@ -61,6 +61,9 @@
         this.divs            = $(this.selector);
         this.cache           = {};
         this.retina          = opts.retina === false ? false : true;
+        this.isRetina        = this.determineIfRetina();
+        this.debounce        = opts.debounce === false ? false : true;
+        this.interval        = opts.interval || 200;
         this.changeDivsToEmptyImages();
 
         window.requestAnimationFrame(function(){
@@ -75,9 +78,18 @@
         this.initialized = true;
         this.checkImagesNeedReplacing();
 
-        window.addEventListener('resize', function(){
-            self.checkImagesNeedReplacing();
-        }, false);
+
+        if (this.debounce) {
+            window.addEventListener('resize', this.debouncer(function(){
+                self.isRetina = self.determineIfRetina();
+                self.checkImagesNeedReplacing();
+            }, self.interval, true), false);
+        } else {
+            window.addEventListener('resize', function(){
+                self.isRetina = self.determineIfRetina();
+                self.checkImagesNeedReplacing();
+            }, false);
+        }
     };
 
 
@@ -150,15 +162,33 @@
     Imager.prototype.changeImageSrcToUseNewImageDimensions = function (src, selectedWidth) {
         var self = this;
         return src.replace(this.regex, function (match, path, offset, complete) {
-            if (self.retina && self.isRetina()) {
+            if (self.retina && self.isRetina) {
                 selectedWidth *= 2;
             }
             return '/image/1/' + selectedWidth + '/0' + path;
         });
     };
 
-    Imager.prototype.isRetina = function() {
+    Imager.prototype.determineIfRetina = function() {
         return ( window.devicePixelRatio > 1.5 || (window.matchMedia && window.matchMedia("(-webkit-min-device-pixel-ratio: 1.5),(min--moz-device-pixel-ratio: 1.5),(-o-min-device-pixel-ratio: 3/2),(min-device-pixel-ratio: 1.5),(min-resolution: 114dpi),(min-resolution: 1.5dppx)").matches));
+    };
+
+    Imager.prototype.debouncer = function (func, threshold, execAsap) {
+        var timeout;
+        return function debounced () {
+            var obj = this, args = arguments;
+            function delayed () {
+                if (!execAsap)
+                    func.apply(obj, args);
+                timeout = null;
+            };
+            if (timeout) {
+                clearTimeout(timeout);
+            } else if (execAsap) {
+                func.apply(obj, args);
+            }
+            timeout = setTimeout(delayed, threshold || 100);
+        };
     };
 
 }(window, document));

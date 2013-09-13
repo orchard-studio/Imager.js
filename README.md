@@ -3,7 +3,11 @@
  * This Fork Source: http://github.com/firegoby/Imager.js
  * This Fork Author: Chris Batchelor, [Firegoby Design](http://firegoby.com)
 
-This fork of [BBC News' Imager.js](http://github.com/bbc-news/Imager.js) adds support for Symphony CMS' JIT Image Manipulation extension/service. It also adds optional Retina/Hi-DPI image support and an XSLT template for easily outputting the correct Imager.js HTML.
+This fork of [BBC News' Imager.js](http://github.com/bbc-news/Imager.js) provides support for Symphony CMS' <a href="https://github.com/symphonycms/jit_image_manipulation">JIT Image Manipulation</a> extension/service. It also adds optional Retina/Hi-DPI image support, a [debouncing function](http://unscriptable.com/2009/03/20/debouncing-javascript-methods/) to prevent excessive re-calculations and an XSLT template for easily outputting the correct Imager.js HTML.
+
+## Demo
+
+A basic demo page showing this in action can be found at [http://firegoby.com/imager/](http://firegoby.com/imager/)
 
 ## Changes in this fork
 
@@ -13,6 +17,7 @@ This fork of [BBC News' Imager.js](http://github.com/bbc-news/Imager.js) adds su
 4. Customised default `availableWidths` to smaller array of `[160, 320, 640, 960, 1440]` as most Symphony CMS user's servers probably shouldn't be generating as many assets on the fly as the BBC's servers can handle ;)
 5. Customised default `selector` of `delayed-image-load` to `imager`
 6. Added a XSLT template `imager` to ease placement of image assets (see below)
+7. Added a [debounce function](http://unscriptable.com/2009/03/20/debouncing-javascript-methods/) to prevent the recalculation firing with every single of hundreds of resize events, by default it waits 200ms before recalcualting, this delay can be overridden in the options with `interval` or disabled entirely with `debounce: false`
 
 ## Retina Support
 
