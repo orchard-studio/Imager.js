@@ -64,6 +64,8 @@
         this.isRetina        = this.determineIfRetina();
         this.debounce        = opts.debounce === false ? false : true;
         this.interval        = opts.interval || 200;
+        this.preload         = opts.preload || false;
+        this.events          = opts.events || false;
         this.changeDivsToEmptyImages();
 
         window.requestAnimationFrame(function(){
@@ -77,7 +79,6 @@
 
         this.initialized = true;
         this.checkImagesNeedReplacing();
-
 
         if (this.debounce) {
             window.addEventListener('resize', this.debouncer(function(){
@@ -135,13 +136,33 @@
         if (this.cache[src]) {
             replacedImage = this.cache[src].cloneNode(false);
             replacedImage.width = image.getAttribute('width');
+            parent.replaceChild(replacedImage, image);
+            this.annouceReplacement(replacedImage, src);
         } else {
-            replacedImage = image.cloneNode(false);
-            replacedImage.src = src;
-            this.cache[src] = replacedImage;
+            if (!this.preload) {
+                replacedImage = image.cloneNode(false);
+                replacedImage.src = src;
+                this.cache[src] = replacedImage;
+                parent.replaceChild(replacedImage, image);
+                this.annouceReplacement(replacedImage, src);
+            } else {
+                replacedImage = image.cloneNode(false);
+                var imager = this;
+                var imageCache = new Image();
+                // .onload MUST be defined BEFORE setting src otherwise
+                // it won't be triggered if the image is already cached
+                // http://fragged.org/preloading-images-using-javascript-the-right-way-and-without-frameworks_744.html
+                imageCache.onload = function() {
+                    //IE6/7 Anim GIF protection: https://gist.github.com/eikes/3925183/#comment-851675
+                    this.onload = this.onabort = this.onerror = null;
+                    replacedImage.src = src;
+                    imager.cache[src] = replacedImage;
+                    parent.replaceChild(replacedImage, image);
+                    imager.annouceReplacement(replacedImage, src);
+                };
+                imageCache.src = src;
+            }
         }
-
-        parent.replaceChild(replacedImage, image);
     };
 
     Imager.prototype.determineAppropriateResolution = function (image) {
@@ -189,6 +210,13 @@
             }
             timeout = setTimeout(delayed, threshold || 100);
         };
+    };
+
+    Imager.prototype.annouceReplacement = function (replacedImage, src) {
+        if (this.events) {
+            var event = new CustomEvent('imagerjs.imageUpdated', { 'detail': {image: replacedImage, newsrc: src} });
+            window.dispatchEvent(event);
+        }
     };
 
 }(window, document));
