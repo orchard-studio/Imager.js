@@ -51,21 +51,24 @@
         var self = this;
             opts = opts || {};
 
-        this.availableWidths = opts.availableWidths || [160,320,640,1440];
-        this.selector        = opts.selector || '.imager';
-        this.className       = '.' + (opts.className || 'image-replace').replace(/^\.+/, '.');
-        this.regex           = opts.regex || /\/image\/1\/\d+\/0(.+)$/i;
-        this.gif             = document.createElement('img');
-        this.gif.src         = 'data:image/gif;base64,R0lGODlhEAAJAIAAAP///wAAACH5BAEAAAAALAAAAAAQAAkAAAIKhI+py+0Po5yUFQA7';
-        this.gif.className   = this.className.replace(/^[#.]/, '');
-        this.divs            = $(this.selector);
-        this.cache           = {};
-        this.retina          = opts.retina === false ? false : true;
-        this.isRetina        = this.determineIfRetina();
-        this.debounce        = opts.debounce === false ? false : true;
-        this.interval        = opts.interval || 200;
-        this.preload         = opts.preload || false;
-        this.events          = opts.events || false;
+        this.availableWidths  = opts.availableWidths || [160,320,640,1440];//{
+        this.selector         = opts.selector || '.imager';
+        this.className        = '.' + (opts.className || 'image-replace').replace(/^\.+/, '.');
+        this.regex            = opts.regex || /\/image\/1\/\d+\/0(.+)$/i;
+        this.gif              = document.createElement('img');
+        this.gif.src          = 'data:image/gif;base64,R0lGODlhEAAJAIAAAP///wAAACH5BAEAAAAALAAAAAAQAAkAAAIKhI+py+0Po5yUFQA7';
+        this.gif.className    = this.className.replace(/^[#.]/, '');
+        this.divs             = $(this.selector);
+        this.cache            = {};
+        this.retina           = opts.retina === false ? false : true;
+        this.isRetina         = false; // see init()
+        this.debounce         = opts.debounce === false ? false : true;
+        this.interval         = opts.interval || 200;
+        this.preload          = opts.preload || false;
+        this.events           = opts.events || false;
+        this.eventsBubble     = opts.eventsBubble === false ? false : true;
+        this.eventsCancelable = opts.eventsCancelable === false ? false : true;
+        this.eventsRetina     = opts.eventsRetina === false ? false : true;
         this.changeDivsToEmptyImages();
 
         window.requestAnimationFrame(function(){
@@ -78,6 +81,9 @@
         var self = this;
 
         this.initialized = true;
+        // init isRetina here rather than in opts init above so that the
+        // retinaStatus event gets broadcast at initial page load
+        this.isRetina = this.determineIfRetina();
         this.checkImagesNeedReplacing();
 
         if (this.debounce) {
@@ -120,6 +126,7 @@
         if (!this.isResizing) {
             this.isResizing = true;
 
+            this.announce('imagerjs.startReplacement', {count: images.length});
             while (i--) {
                 this.replaceImagesBasedOnScreenDimensions(images[i]);
             }
@@ -137,17 +144,17 @@
             replacedImage = this.cache[src].cloneNode(false);
             replacedImage.width = image.getAttribute('width');
             parent.replaceChild(replacedImage, image);
-            this.annouceReplacement(replacedImage, src);
+            this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src});
         } else {
             if (!this.preload) {
                 replacedImage = image.cloneNode(false);
                 replacedImage.src = src;
                 this.cache[src] = replacedImage;
                 parent.replaceChild(replacedImage, image);
-                this.annouceReplacement(replacedImage, src);
+                this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src});
             } else {
                 replacedImage = image.cloneNode(false);
-                var imager = this;
+                var self = this;
                 var imageCache = new Image();
                 // .onload MUST be defined BEFORE setting src otherwise
                 // it won't be triggered if the image is already cached
@@ -156,9 +163,9 @@
                     //IE6/7 Anim GIF protection: https://gist.github.com/eikes/3925183/#comment-851675
                     this.onload = this.onabort = this.onerror = null;
                     replacedImage.src = src;
-                    imager.cache[src] = replacedImage;
+                    self.cache[src] = replacedImage;
                     parent.replaceChild(replacedImage, image);
-                    imager.annouceReplacement(replacedImage, src);
+                    self.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src});
                 };
                 imageCache.src = src;
             }
@@ -191,7 +198,11 @@
     };
 
     Imager.prototype.determineIfRetina = function() {
-        return ( window.devicePixelRatio > 1.5 || (window.matchMedia && window.matchMedia("(-webkit-min-device-pixel-ratio: 1.5),(min--moz-device-pixel-ratio: 1.5),(-o-min-device-pixel-ratio: 3/2),(min-device-pixel-ratio: 1.5),(min-resolution: 114dpi),(min-resolution: 1.5dppx)").matches));
+        var isRetina = ( window.devicePixelRatio > 1.5 || (window.matchMedia && window.matchMedia("(-webkit-min-device-pixel-ratio: 1.5),(min--moz-device-pixel-ratio: 1.5),(-o-min-device-pixel-ratio: 3/2),(min-device-pixel-ratio: 1.5),(min-resolution: 114dpi),(min-resolution: 1.5dppx)").matches));
+        if (this.events && this.eventsRetina) {
+            this.announce('imagerjs.retinaStatus', {status: isRetina});
+        }
+        return isRetina;
     };
 
     Imager.prototype.debouncer = function (func, threshold, execAsap) {
@@ -212,11 +223,24 @@
         };
     };
 
-    Imager.prototype.annouceReplacement = function (replacedImage, src) {
+    Imager.prototype.announce = function(name, detail) {
         if (this.events) {
-            var event = new CustomEvent('imagerjs.imageUpdated', { 'detail': {image: replacedImage, newsrc: src} });
+            var event = new CustomEvent(name, {detail: detail, bubbles: this.eventsBubble, cancelable: this.eventsCancelable});
             window.dispatchEvent(event);
         }
     };
 
 }(window, document));
+
+(function () {
+  function CustomEvent ( event, params ) {
+    params = params || { bubbles: false, cancelable: false, detail: undefined };
+    var evt = document.createEvent( 'CustomEvent' );
+    evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
+    return evt;
+   };
+
+  CustomEvent.prototype = window.CustomEvent.prototype;
+
+  window.CustomEvent = CustomEvent;
+})();
