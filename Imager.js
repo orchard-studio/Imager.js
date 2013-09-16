@@ -54,7 +54,7 @@
         this.availableWidths  = opts.availableWidths || [160,320,640,1440];//{
         this.selector         = opts.selector || '.imager';
         this.className        = '.' + (opts.className || 'image-replace').replace(/^\.+/, '.');
-        this.regex            = opts.regex || /\/image\/1\/\d+\/0(.+)$/i;
+        this.regex            = opts.regex || /\/image\/(\d)\/(\d+)\/(\d+)\/?(\d)?\/?([0-9a-fA-F]{3,6})?\/?(.+)$/i;
         this.gif              = document.createElement('img');
         this.gif.src          = 'data:image/gif;base64,R0lGODlhEAAJAIAAAP///wAAACH5BAEAAAAALAAAAAAQAAkAAAIKhI+py+0Po5yUFQA7';
         this.gif.className    = this.className.replace(/^[#.]/, '');
@@ -189,11 +189,28 @@
 
     Imager.prototype.changeImageSrcToUseNewImageDimensions = function (src, selectedWidth) {
         var self = this;
-        return src.replace(this.regex, function (match, path, offset, complete) {
+        return src.replace(this.regex, function (match, mode, width, height, crop, bg, path, offset, whole) {
             if (self.retina && self.isRetina) {
                 selectedWidth *= 2;
             }
-            return '/image/1/' + selectedWidth + '/0' + path;
+            switch (mode) {
+                case "0":
+                    return '/image/0/' + path;
+                    break;
+                case "1":
+                case "4":
+                    return '/image/' + mode + '/' + selectedWidth + '/0/' + path;
+                    break;
+                case "2":
+                case "3":
+                    var newHeight = Math.ceil((selectedWidth / width) * parseInt(height, 10));
+                    var newsrc = '/image/' + mode + '/' + selectedWidth + '/' + newHeight + '/' + crop + '/';
+                    if (bg !== undefined) {
+                        newsrc += bg + '/';
+                    }
+                    return newsrc + path;
+                    break;
+            }
         });
     };
 

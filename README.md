@@ -3,21 +3,34 @@
  * This Fork Source: http://github.com/firegoby/Imager.js
  * This Fork Author: Chris Batchelor, [Firegoby Design](http://firegoby.com)
 
-This fork of [BBC News' Imager.js](http://github.com/bbc-news/Imager.js) provides support for Symphony CMS' <a href="https://github.com/symphonycms/jit_image_manipulation">JIT Image Manipulation</a> extension/service. It also adds optional Retina/Hi-DPI image support, a [debouncing function](http://unscriptable.com/2009/03/20/debouncing-javascript-methods/) to prevent excessive re-calculations and an XSLT template for easily outputting the correct Imager.js HTML.
+This fork of [BBC News' Imager.js](http://github.com/bbc-news/Imager.js) provides support for Symphony CMS' <a href="https://github.com/symphonycms/jit_image_manipulation">JIT Image Manipulation</a> extension/service. It also adds a number of extra features, see the list below.
 
 ## Demo
 
-A basic demo page showing this in action can be found at [http://firegoby.com/imager/](http://firegoby.com/imager/)
+A demo page showing this in action can be found at [http://firegoby.com/imager/](http://firegoby.com/imager/)
 
-## Changes in this fork
+## Extra Features
 
-1. Customised default regexp to match URLs of the JIT form: `/image/1/640/0/images/subfolder/example.jpg`
-2. Customised `changeImageSrcToUseNewImageDimensions` function to return URLs of the JIT form: `/image/1/newwidth/0/images/subfolder/example.jpg`
+* **Retina/Hi-DPI image support**, serves 2x images when retina display detected
+* **[Debouncing function](http://unscriptable.com/2009/03/20/debouncing-javascript-methods/)** to prevent excessive re-calculations
+* **Background preloader** ensuring new images are fully downloaded to the cache before replacing them in the page (asynchronously)
+* **Events broadcast** so action/notifications can be happen when images are updated (e.g. the progress bar and image highlighting in this demo)
+* **JIT multi-mode support** use JIT's on-the-fly cropping features as normal. DOES NOT currently support external URL images or JIT recipes
+* An **XSLT template** for easily outputting the correct Imager.js HTML including a fallback img in noscript for non-JS users
+
+All features are optional and can be easily adjusted by passing options to Imager.js
+
+## Other differences to the original Imager.js
+
+1. Customised default regexp to match URLs of the JIT form: `/image/mode/width/height/crop/images/subfolder/example.jpg`
+2. Customised `changeImageSrcToUseNewImageDimensions` function to return URLs of the JIT form: `/image/mode/newwidth/newheight/crop/images/subfolder/example.jpg`
 3. Added `retina` configuration option (defaults to `true`) that when enabled serves up double width images when the client's current browser window is Retina/Hi-DPI (DPI > 1.5)
 4. Customised default `availableWidths` to smaller array of `[160, 320, 640, 960, 1440]` as most Symphony CMS user's servers probably shouldn't be generating as many assets on the fly as the BBC's servers can handle ;)
 5. Customised default `selector` of `delayed-image-load` to `imager`
 6. Added a XSLT template `imager` to ease placement of image assets (see below)
 7. Added a [debounce function](http://unscriptable.com/2009/03/20/debouncing-javascript-methods/) to prevent the recalculation firing with every single of hundreds of resize events, by default it waits 200ms before recalcualting, this delay can be overridden in the options with `interval` or disabled entirely with `debounce: false`
+8. Added a preloader that will download the new resolution image in the background fully *before* updating the DOM, this prevents a flash of blank space occurring on slower connections or heavier pages where a lot of new images need to be fetched. This runs asynchronously via callbacks so each image updates itself once downloaded.
+9. Added event emitter that broadcasts events to the window object when image replacements cycle begins, on each image update and for retina status. See **Events** below
 
 ## Retina Support
 
@@ -25,9 +38,40 @@ This fork takes a slightly different approach to Retina/Hi-DPI images than some 
 
 In other words, upscaling a low-resolution image and serving it double sized is not going to magically make it 'hi-dpi', it's just going to *increase* your user's bandwidth load. This feature should thus only be used when you have access to Hi-DPI image content; if you don't, simply pass the `retina: false` option when calling Imager.js (e.g. `var imager = new Imager({retina: false});` and it will work exactly as the original Imager.js does.
 
+## Events
+
+This verison of Imager.js emits a number events if `events: true` is passed to the Imager.js constructor. This allows feedback from the script to listened for and acted upon. e.g.
+
+    var imager = new Imager({events: true});
+
+`imagerjs.startReplacement` event on `window` when a new round of img replacements begins. The event object contains the number of images to be replaced. e.g.
+
+    window.addEventListener('imagerjs.startReplacement', function(ev) {
+        imageCount = ev.detail.count;
+        NProgress.start();
+        // do your own thing
+    });
+
+`imagerjs.imageUpdated` event on `window` when an img has been updated. (If the preloader is enabled this is when the image has been fully downloaded). The event object contains the image DOM node and a strong of the new src. e.g.
+
+    window.addEventListener('imagerjs.imageUpdated', function(ev) {
+        ev.detail.image.style.borderColor = "red";
+        setTimeout(function() {
+            ev.detail.image.style.borderColor = 'transparent';
+        }, 3000);
+        console.log('updated img to ' + ev.detail.newsrc);
+    });
+
+`imagerjs.retinaStatus` event on `window` during `resize`. The event object contains a Boolean (true/false) of "is this a retina/hi-dpi device". e.g.
+
+    window.addEventListener('imagerjs.retinaStatus', function(ev) {
+        var retinaFlag = document.getElementsByClassName('retina-screen')[0];
+        retinaFlag.innerHTML = ev.detail.status ? 'Retina/Hi-DPI display detected!' : '';
+    });
+
 ## Imager XSLT Template - imager.xsl
 
-The `imager` template takes two required params `image` and `width`. `image` is a standard Symphony file upload XML node and `width` is Imager.js' default placeholder width (see Imager.js docs). Also takes an optional third param `class` that allows overriding default `imager` CSS class.
+The template will output the correct HTML for Imager.js and also set a fallback image wrapped in `noscript` tags for users with JS switched off. The `imager` template takes two required params `image` and `width`. `image` is a standard Symphony file upload XML node and `width` is Imager.js' default placeholder width, i.e. how wide the image would be if you were placing it normally (see Imager.js docs and demo). Also takes an optional third param `class` that allows overriding default `imager` CSS class.
 
 ### Example XSLT
 
@@ -38,7 +82,11 @@ The `imager` template takes two required params `image` and `width`. `image` is 
 
 ### Example Output HTML
 
-    <div class="imager" data-src="/image/1/640/0/images/example/file.jpg" data-width="640"></div>
+    <div class="imager" data-src="/image/1/640/0/images/example/file.jpg" data-width="640">
+        <noscript>
+            <img src="/image/1/640/0/images/example/file.jpg"/>
+        </noscript>
+    </div>
 
 Main/Original BBC Imager.js README below...
 

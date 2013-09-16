@@ -5,7 +5,12 @@
         <xsl:param name="image"/>
         <xsl:param name="width"/>
         <xsl:param name="class" select="'imager'"/>
-        <div class="{$class}" data-src="/image/1/{$width}/0{$image/@path}/{$image/filename}" data-width="{$width}"></div>
+        <xsl:param name="alt" select="''"/>
+        <div class="{$class}" data-src="/image/1/{$width}/0{$image/@path}/{$image/filename}" data-width="{$width}">
+            <noscript>
+                <img src="/image/1/{$width}/0{$image/@path}/{$image/filename}" alt="{$alt}"/>
+            </noscript>
+        </div>
     </xsl:template>
 
 </xsl:stylesheet>
