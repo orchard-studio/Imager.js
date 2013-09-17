@@ -84,6 +84,7 @@
         // init isRetina here rather than in opts init above so that the
         // retinaStatus event gets broadcast at initial page load
         this.isRetina = this.determineIfRetina();
+
         this.checkImagesNeedReplacing();
 
         if (this.debounce) {
@@ -241,7 +242,7 @@
     };
 
     Imager.prototype.announce = function(name, detail) {
-        if (this.events) {
+        if (this.events && window.CustomEvent) {
             var event = new CustomEvent(name, {detail: detail, bubbles: this.eventsBubble, cancelable: this.eventsCancelable});
             window.dispatchEvent(event);
         }
@@ -249,15 +250,18 @@
 
 }(window, document));
 
+// IE 9/10 CustomEvent Polyfill
 (function () {
-  function CustomEvent ( event, params ) {
-    params = params || { bubbles: false, cancelable: false, detail: undefined };
-    var evt = document.createEvent( 'CustomEvent' );
-    evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
-    return evt;
-   };
+    if (window.CustomEvent) {
+        function CustomEvent ( event, params ) {
+            params = params || { bubbles: false, cancelable: false, detail: undefined };
+            var evt = document.createEvent( 'CustomEvent' );
+            evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
+            return evt;
+        };
 
-  CustomEvent.prototype = window.CustomEvent.prototype;
+        CustomEvent.prototype = window.CustomEvent.prototype;
 
-  window.CustomEvent = CustomEvent;
+        window.CustomEvent = CustomEvent;
+    }
 })();
