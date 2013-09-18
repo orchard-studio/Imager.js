@@ -127,7 +127,10 @@
         if (!this.isResizing) {
             this.isResizing = true;
 
-            this.announce('imagerjs.startReplacement', {count: images.length});
+            if (images.length > 0) {
+                this.announce('imagerjs.startReplacement', {count: images.length});
+            }
+
             while (i--) {
                 this.replaceImagesBasedOnScreenDimensions(images[i]);
             }
@@ -145,14 +148,14 @@
             replacedImage = this.cache[src].cloneNode(false);
             replacedImage.width = image.getAttribute('width');
             parent.replaceChild(replacedImage, image);
-            this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src});
+            this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: true});
         } else {
             if (!this.preload) {
                 replacedImage = image.cloneNode(false);
                 replacedImage.src = src;
                 this.cache[src] = replacedImage;
                 parent.replaceChild(replacedImage, image);
-                this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src});
+                this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: false});
             } else {
                 replacedImage = image.cloneNode(false);
                 var self = this;
@@ -166,7 +169,7 @@
                     replacedImage.src = src;
                     self.cache[src] = replacedImage;
                     parent.replaceChild(replacedImage, image);
-                    self.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src});
+                    self.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: false});
                 };
                 imageCache.src = src;
             }
@@ -175,12 +178,12 @@
 
     Imager.prototype.determineAppropriateResolution = function (image) {
         var src           = image.getAttribute('data-src'),
-            imagewidth    = image.clientWidth,
+            imageWidth    = image.clientWidth,
             selectedWidth = this.availableWidths[0],
             i             = this.availableWidths.length;
 
         while (i--) {
-            if (imagewidth <= this.availableWidths[i]) {
+            if (imageWidth <= this.availableWidths[i]) {
                 selectedWidth = this.availableWidths[i];
             }
         }
