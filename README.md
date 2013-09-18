@@ -3,7 +3,7 @@
  * This Fork Source: http://github.com/firegoby/Imager.js
  * This Fork Author: Chris Batchelor, [Firegoby Design](http://firegoby.com)
 
-This fork of [BBC News' Imager.js](http://github.com/bbc-news/Imager.js) provides support for Symphony CMS' <a href="https://github.com/symphonycms/jit_image_manipulation">JIT Image Manipulation</a> extension/service. It also adds a number of extra features, see the list below.
+This fork of [BBC News' Imager.js](http://github.com/bbc-news/Imager.js) provides support for Symphony CMS' <a href="https://github.com/symphonycms/jit_image_manipulation">JIT Image Manipulation</a> extension/service. It also adds a number of extra features, see the list below. [Development discussion](http://www.getsymphony.com/discuss/thread/103236/) on the Symphony CMS forums. Raise a github issue if you find something broken, thanks.
 
 ## Demo
 
@@ -52,10 +52,14 @@ This verison of Imager.js emits a number events if `events: true` is passed to t
         // do your own thing
     });
 
-`imagerjs.imageUpdated` event on `window` when an img has been updated. (If the preloader is enabled this is when the image has been fully downloaded). The event object contains the image DOM node and a strong of the new src. e.g.
+`imagerjs.imageUpdated` event on `window` when an img has been updated. (If the preloader is enabled this is when the image has been fully downloaded). The event object contains the image DOM node, a string of the new src and a boolean flag whether the replacment was from the Imager.js' DOM cache, i.e. was it the first time in the lifecycle this particular resolution had been requested/cached. e.g.
 
     window.addEventListener('imagerjs.imageUpdated', function(ev) {
-        ev.detail.image.style.borderColor = "red";
+        if (!ev.detail.DOMcached) {
+            ev.detail.image.style.borderColor = "red";
+        } else {
+            ev.detail.image.style.borderColor = "green";
+        }
         setTimeout(function() {
             ev.detail.image.style.borderColor = 'transparent';
         }, 3000);
@@ -71,18 +75,19 @@ This verison of Imager.js emits a number events if `events: true` is passed to t
 
 ## Imager XSLT Template - imager.xsl
 
-The template will output the correct HTML for Imager.js and also set a fallback image wrapped in `noscript` tags for users with JS switched off. The `imager` template takes two required params `image` and `width`. `image` is a standard Symphony file upload XML node and `width` is Imager.js' default placeholder width, i.e. how wide the image would be if you were placing it normally (see Imager.js docs and demo). Also takes an optional third param `class` that allows overriding default `imager` CSS class.
+The template will output the correct HTML for Imager.js and also set a fallback image wrapped in `noscript` tags for users with JS switched off. The `imager` template takes two required params `image` and `width`. `image` is a standard Symphony file upload XML node and `width` is Imager.js' default placeholder width, i.e. how wide the image would be if you were placing it normally (see Imager.js docs and demo). Also takes three optional params:  `class` that allows overriding default `imager` CSS class, `alt` which provides an text for the `noscript` `img` tag and `jit` which takes a JIT mode string, the bit before the image path.
 
 ### Example XSLT
 
     <xsl:call-template name="imager">
         <xsl:with-param name="image" select="file"/>
         <xsl:with-param name="width" select="640"/>
+        <xsl:with-param name=jit" select="'/image/2/350/350/5'"/>
     </xsl:call-template>
 
 ### Example Output HTML
 
-    <div class="imager" data-src="/image/1/640/0/images/example/file.jpg" data-width="640">
+    <div class="imager" data-src="/image/2/350/350/5/images/example/file.jpg" data-width="640">
         <noscript>
             <img src="/image/1/640/0/images/example/file.jpg"/>
         </noscript>

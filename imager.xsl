@@ -6,9 +6,10 @@
         <xsl:param name="width"/>
         <xsl:param name="class" select="'imager'"/>
         <xsl:param name="alt" select="''"/>
-        <div class="{$class}" data-src="/image/1/{$width}/0{$image/@path}/{$image/filename}" data-width="{$width}">
+        <xsl:param name="jit" select="'/image/1/{$width}/0'"/>
+        <div class="{$class}" data-src="{$jit}{$image/@path}/{$image/filename}" data-width="{$width}">
             <noscript>
-                <img src="/image/1/{$width}/0{$image/@path}/{$image/filename}" alt="{$alt}"/>
+                <img src="{$jit}{$image/@path}/{$image/filename}" alt="{$alt}"/>
             </noscript>
         </div>
     </xsl:template>
