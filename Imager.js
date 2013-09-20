@@ -69,7 +69,17 @@
         this.eventsBubble     = opts.eventsBubble === false ? false : true;
         this.eventsCancelable = opts.eventsCancelable === false ? false : true;
         this.eventsRetina     = opts.eventsRetina === false ? false : true;
-        this.changeDivsToEmptyImages();
+        this.cssBackground    = opts.cssBackground || false;
+
+        if (this.cssBackground) {
+            var bgs = this.divs,
+                i = bgs.length;
+            while (i--) {
+                bgs[i].className += ' ' + this.className.replace(/^[#.]/, '');
+            }
+        } else {
+            this.changeDivsToEmptyImages();
+        }
 
         window.requestAnimationFrame(function(){
             self.init();
@@ -141,23 +151,14 @@
 
     Imager.prototype.replaceImagesBasedOnScreenDimensions = function (image) {
         var src = this.determineAppropriateResolution(image),
-            parent = image.parentNode,
+            parent,
             replacedImage;
 
-        if (this.cache[src]) {
-            replacedImage = this.cache[src].cloneNode(false);
-            replacedImage.width = image.getAttribute('width');
-            parent.replaceChild(replacedImage, image);
-            this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: true});
-        } else {
+        if (this.cssBackground) {
             if (!this.preload) {
-                replacedImage = image.cloneNode(false);
-                replacedImage.src = src;
-                this.cache[src] = replacedImage;
-                parent.replaceChild(replacedImage, image);
-                this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: false});
+                image.style.backgroundImage = 'url(' + src + ')';
+                this.announce('imagerjs.imageUpdated', {image: image, newsrc: src, DOMcached: false});
             } else {
-                replacedImage = image.cloneNode(false);
                 var self = this;
                 var imageCache = new Image();
                 // .onload MUST be defined BEFORE setting src otherwise
@@ -166,14 +167,46 @@
                 imageCache.onload = function() {
                     //IE6/7 Anim GIF protection: https://gist.github.com/eikes/3925183/#comment-851675
                     this.onload = this.onabort = this.onerror = null;
-                    replacedImage.src = src;
-                    self.cache[src] = replacedImage;
-                    parent.replaceChild(replacedImage, image);
-                    self.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: false});
+                    image.style.backgroundImage = 'url(' + src + ')';
+                    self.announce('imagerjs.imageUpdated', {image: image, newsrc: src, DOMcached: false});
+                };
+                imageCache.src = src;
+            }
+            return;
+        }
+
+        if (this.cache[src]) {
+            parent = image.parentNode;
+            replacedImage = this.cache[src].cloneNode(false);
+            replacedImage.width = image.getAttribute('width');
+            parent.replaceChild(replacedImage, image);
+            this.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: true});
+        } else {
+            if (!this.preload) {
+                this.replaceImageNode(image, src, this);
+            } else {
+                var self = this;
+                var imageCache = new Image();
+                // .onload MUST be defined BEFORE setting src otherwise
+                // it won't be triggered if the image is already cached
+                // http://fragged.org/preloading-images-using-javascript-the-right-way-and-without-frameworks_744.html
+                imageCache.onload = function() {
+                    //IE6/7 Anim GIF protection: https://gist.github.com/eikes/3925183/#comment-851675
+                    this.onload = this.onabort = this.onerror = null;
+                    self.replaceImageNode(image, src, self);
                 };
                 imageCache.src = src;
             }
         }
+    };
+
+    Imager.prototype.replaceImageNode = function (image, src, self) {
+        var replacedImage = image.cloneNode(false),
+            parent = image.parentNode;
+        replacedImage.src = src;
+        self.cache[src] = replacedImage;
+        parent.replaceChild(replacedImage, image);
+        self.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: false});
     };
 
     Imager.prototype.determineAppropriateResolution = function (image) {
