@@ -72,16 +72,12 @@
         this.cssBackground    = opts.cssBackground || false;
 
         if (this.cssBackground) {
-            var bgs = this.divs,
-                i = bgs.length;
-            while (i--) {
-                bgs[i].className += ' ' + this.className.replace(/^[#.]/, '');
-            }
+            this.addClassNameToCSSBackgroundDivs();
         } else {
             this.changeDivsToEmptyImages();
         }
 
-        window.requestAnimationFrame(function(){
+        window.requestAnimationFrame(function () {
             self.init();
         });
     };
@@ -91,6 +87,7 @@
         var self = this;
 
         this.initialized = true;
+
         // init isRetina here rather than in opts init above so that the
         // retinaStatus event gets broadcast at initial page load
         this.isRetina = this.determineIfRetina();
@@ -98,15 +95,29 @@
         this.checkImagesNeedReplacing();
 
         if (this.debounce) {
-            window.addEventListener('resize', this.debouncer(function(){
+            window.addEventListener('resize', this.debouncer(function () {
                 self.isRetina = self.determineIfRetina();
                 self.checkImagesNeedReplacing();
             }, self.interval, false), false);
         } else {
-            window.addEventListener('resize', function(){
+            window.addEventListener('resize', function () {
                 self.isRetina = self.determineIfRetina();
                 self.checkImagesNeedReplacing();
             }, false);
+        }
+    };
+
+
+    Imager.prototype.addClassNameToCSSBackgroundDivs = function () {
+        var bgs = this.divs,
+            i = bgs.length;
+
+        while (i--) {
+            bgs[i].className += ' ' + this.className.replace(/^[#.]/, '');
+        }
+
+        if (this.initialized) {
+            this.checkImagesNeedReplacing();
         }
     };
 
@@ -149,6 +160,19 @@
         }
     };
 
+    Imager.prototype.executeAfterImagePreload = function (image, src, self, callback) {
+        var imageCache = new Image();
+        // .onload MUST be defined BEFORE setting src otherwise
+        // it won't be triggered if the image is already cached
+        // http://fragged.org/preloading-images-using-javascript-the-right-way-and-without-frameworks_744.html
+        imageCache.onload = function () {
+            //IE6/7 Anim GIF protection: https://gist.github.com/eikes/3925183/#comment-851675
+            this.onload = this.onabort = this.onerror = null;
+            callback(image, src, self);
+        };
+        imageCache.src = src;
+    };
+
     Imager.prototype.replaceImagesBasedOnScreenDimensions = function (image) {
         var src = this.determineAppropriateResolution(image),
             parent,
@@ -156,21 +180,9 @@
 
         if (this.cssBackground) {
             if (!this.preload) {
-                image.style.backgroundImage = 'url(' + src + ')';
-                this.announce('imagerjs.imageUpdated', {image: image, newsrc: src, DOMcached: false});
+                this.replaceCSSBackgroundImage(image, src, this);
             } else {
-                var self = this;
-                var imageCache = new Image();
-                // .onload MUST be defined BEFORE setting src otherwise
-                // it won't be triggered if the image is already cached
-                // http://fragged.org/preloading-images-using-javascript-the-right-way-and-without-frameworks_744.html
-                imageCache.onload = function() {
-                    //IE6/7 Anim GIF protection: https://gist.github.com/eikes/3925183/#comment-851675
-                    this.onload = this.onabort = this.onerror = null;
-                    image.style.backgroundImage = 'url(' + src + ')';
-                    self.announce('imagerjs.imageUpdated', {image: image, newsrc: src, DOMcached: false});
-                };
-                imageCache.src = src;
+                this.executeAfterImagePreload(image, src, this, this.replaceCSSBackgroundImage);
             }
             return;
         }
@@ -185,20 +197,11 @@
             if (!this.preload) {
                 this.replaceImageNode(image, src, this);
             } else {
-                var self = this;
-                var imageCache = new Image();
-                // .onload MUST be defined BEFORE setting src otherwise
-                // it won't be triggered if the image is already cached
-                // http://fragged.org/preloading-images-using-javascript-the-right-way-and-without-frameworks_744.html
-                imageCache.onload = function() {
-                    //IE6/7 Anim GIF protection: https://gist.github.com/eikes/3925183/#comment-851675
-                    this.onload = this.onabort = this.onerror = null;
-                    self.replaceImageNode(image, src, self);
-                };
-                imageCache.src = src;
+                this.executeAfterImagePreload(image, src, this, this.replaceImageNode);
             }
         }
     };
+
 
     Imager.prototype.replaceImageNode = function (image, src, self) {
         var replacedImage = image.cloneNode(false),
@@ -208,6 +211,13 @@
         parent.replaceChild(replacedImage, image);
         self.announce('imagerjs.imageUpdated', {image: replacedImage, newsrc: src, DOMcached: false});
     };
+
+
+    Imager.prototype.replaceCSSBackgroundImage = function (elem, src, self) {
+        elem.style.backgroundImage = 'url(' + src + ')';
+        self.announce('imagerjs.imageUpdated', {image: elem, newsrc: src, DOMcached: false});
+    };
+
 
     Imager.prototype.determineAppropriateResolution = function (image) {
         var src           = image.getAttribute('data-src'),
@@ -223,6 +233,7 @@
 
         return this.changeImageSrcToUseNewImageDimensions(src, selectedWidth);
     };
+
 
     Imager.prototype.changeImageSrcToUseNewImageDimensions = function (src, selectedWidth) {
         var self = this;
@@ -251,13 +262,15 @@
         });
     };
 
-    Imager.prototype.determineIfRetina = function() {
+
+    Imager.prototype.determineIfRetina = function () {
         var isRetina = ( window.devicePixelRatio > 1.5 || (window.matchMedia && window.matchMedia("(-webkit-min-device-pixel-ratio: 1.5),(min--moz-device-pixel-ratio: 1.5),(-o-min-device-pixel-ratio: 3/2),(min-device-pixel-ratio: 1.5),(min-resolution: 114dpi),(min-resolution: 1.5dppx)").matches));
         if (this.events && this.eventsRetina) {
             this.announce('imagerjs.retinaStatus', {status: isRetina});
         }
         return isRetina;
     };
+
 
     Imager.prototype.debouncer = function (func, threshold, execAsap) {
         var timeout;
@@ -277,6 +290,7 @@
         };
     };
 
+
     Imager.prototype.announce = function(name, detail) {
         if (this.events && window.CustomEvent) {
             var event = new CustomEvent(name, {detail: detail, bubbles: this.eventsBubble, cancelable: this.eventsCancelable});
@@ -288,7 +302,7 @@
 
 // IE 9/10 CustomEvent Polyfill
 (function () {
-    if (window.CustomEvent) {
+    if (window.CustomEvent) { // prevent IE8 throwing its teddies out of the pram
         function CustomEvent ( event, params ) {
             params = params || { bubbles: false, cancelable: false, detail: undefined };
             var evt = document.createEvent( 'CustomEvent' );
