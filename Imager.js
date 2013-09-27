@@ -160,7 +160,7 @@
         }
     };
 
-    Imager.prototype.executeAfterImagePreload = function (image, src, self, callback) {
+    Imager.prototype.executeAfterImagePreload = function (callback, image, src, self) {
         var imageCache = new Image();
         // .onload MUST be defined BEFORE setting src otherwise
         // it won't be triggered if the image is already cached
@@ -182,7 +182,7 @@
             if (!this.preload) {
                 this.replaceCSSBackgroundImage(image, src, this);
             } else {
-                this.executeAfterImagePreload(image, src, this, this.replaceCSSBackgroundImage);
+                this.executeAfterImagePreload(this.replaceCSSBackgroundImage, image, src, this);
             }
             return;
         }
@@ -197,7 +197,7 @@
             if (!this.preload) {
                 this.replaceImageNode(image, src, this);
             } else {
-                this.executeAfterImagePreload(image, src, this, this.replaceImageNode);
+                this.executeAfterImagePreload(this.replaceImageNode, image, src, this);
             }
         }
     };

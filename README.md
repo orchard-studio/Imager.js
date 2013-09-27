@@ -14,6 +14,7 @@ A demo page showing this in action can be found at [http://firegoby.com/imager/]
 * **Retina/Hi-DPI image support**, serves 2x images when retina display detected
 * **[Debouncing function](http://unscriptable.com/2009/03/20/debouncing-javascript-methods/)** to prevent excessive re-calculations
 * **Background preloader** ensuring new images are fully downloaded to the cache before replacing them in the page (asynchronously)
+* **CSS backgrounds support** mean all image assets can be made responsive
 * **Events broadcast** so action/notifications can be happen when images are updated (e.g. the progress bar and image highlighting in this demo)
 * **JIT multi-mode support** use JIT's on-the-fly cropping features as normal. DOES NOT currently support external URL images or JIT recipes
 * An **XSLT template** for easily outputting the correct Imager.js HTML including a fallback img in noscript for non-JS users
