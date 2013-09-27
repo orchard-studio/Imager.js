@@ -14,7 +14,7 @@ A demo page showing this in action can be found at [http://firegoby.com/imager/]
 * **Retina/Hi-DPI image support**, serves 2x images when retina display detected
 * **[Debouncing function](http://unscriptable.com/2009/03/20/debouncing-javascript-methods/)** to prevent excessive re-calculations
 * **Background preloader** ensuring new images are fully downloaded to the cache before replacing them in the page (asynchronously)
-* **CSS backgrounds support** mean all image assets can be made responsive
+* **CSS backgrounds support** means all image assets can be made responsive
 * **Events broadcast** so action/notifications can be happen when images are updated (e.g. the progress bar and image highlighting in this demo)
 * **JIT multi-mode support** use JIT's on-the-fly cropping features as normal. DOES NOT currently support external URL images or JIT recipes
 * An **XSLT template** for easily outputting the correct Imager.js HTML including a fallback img in noscript for non-JS users
@@ -38,6 +38,10 @@ All features are optional and can be easily adjusted by passing options to Image
 This fork takes a slightly different approach to Retina/Hi-DPI images than some other techniques, instead of checking to see whether a `@2x` version of an image exists and then replacing it if it does, this instead simply **blindly** generates a double width image from the original source image and serves that. Therefore this approach is only suitable for use when the master/original images are all in high enough resolution to supply your design's needs on Retina/Hi-DPI devices. For example, you're creating a photography portfolio, you would upload a single high-resolution 3000px+ master JPG into Symphony and then let JIT generate all the other versions on the fly as needed. So an example user on 15" Retina MacbookPro would get served a 2880px wide image to display on screen at 1440px.
 
 In other words, upscaling a low-resolution image and serving it double sized is not going to magically make it 'hi-dpi', it's just going to *increase* your user's bandwidth load. This feature should thus only be used when you have access to Hi-DPI image content; if you don't, simply pass the `retina: false` option when calling Imager.js (e.g. `var imager = new Imager({retina: false});` and it will work exactly as the original Imager.js does.
+
+## CSS Backgrounds Support
+
+Simply add `cssBackground: true` to whichever Imager.js objects are acting on CSS backgrounds rather than images. See the [CSS Backgrounds Demo page](http://firegoby.com/imager-cssbackgrounds/) for example code.
 
 ## Events
 
