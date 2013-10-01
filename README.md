@@ -87,7 +87,7 @@ The template will output the correct HTML for Imager.js and also set a fallback 
     <xsl:call-template name="imager">
         <xsl:with-param name="image" select="file"/>
         <xsl:with-param name="width" select="640"/>
-        <xsl:with-param name=jit" select="'/image/2/350/350/5'"/>
+        <xsl:with-param name="jit" select="'/image/2/350/350/5'"/>
     </xsl:call-template>
 
 ### Example Output HTML
